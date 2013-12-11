@@ -40,17 +40,17 @@
 //
 //
 
-class PolishEncode {
+class PolishEncode
+{
 
 	/** Supported encodings:
 	 * - UTF-8
 	 * - ISO-8859-2
 	 * - WINDOWS-1250
 	 */
-	const
-		ENCODE_UTF = 'UTF-8',
-		ENCODE_ISO = 'ISO-8859-2',
-		ENCODE_WIN = 'WINDOWS-1250';
+	const ENCODE_UTF = 'UTF-8';
+	const ENCODE_ISO = 'ISO-8859-2';
+	const ENCODE_WIN = 'WINDOWS-1250';
 
 	/** Detect encode result:
 	 * - UTF-8
@@ -60,13 +60,12 @@ class PolishEncode {
 	 * - ISO-8859-2 and WINDOWS-1250 mixed
 	 * - unrecognized
 	 */
-	const
-		DETECTED_UTF			= 0,
-		DETECTED_ISO			= 1,
-		DETECTED_WIN			= 2,
-		DETECTED_ISO_WIN_MIX	= 3,
-		DETECTED_ISO_WIN_OR     = 4,
-		DETECTED_UNRECOGNIZED   = 5;
+	const DETECTED_UTF			= 0;
+	const DETECTED_ISO			= 1;
+	const DETECTED_WIN			= 2;
+	const DETECTED_ISO_WIN_MIX	= 3;
+	const DETECTED_ISO_WIN_OR	= 4;
+	const DETECTED_UNRECOGNIZED	= 5;
 
 	const COUNT_CHARS = 3;
 
@@ -75,68 +74,49 @@ class PolishEncode {
 	 * - ISO-8859-2 specific codes for "ąśźĄŚŹ"
 	 * - WINDOWS-1250 specific codes
 	 */
-	private static
-		$_CHARS_ISO		= array( "\xb1", "\xb6", "\xbc", "\xa1", "\xa6", "\xac" ),
-		$_CHARS_WIN		= array( "\xb9", "\x9c", "\x9f", "\xa5", "\x8c", "\x8f" ),
-		$_CHARS_ISO_WIN	= array( "\xe6", "\xea", "\xb3", "\xf1", "\xf3", "\xbf", "\xc6", "\xca", "\xa3", "\xd1", "\xd3", "\xaf" );
+	private static $_CHARS_ISO		= ["\xb1", "\xb6", "\xbc", "\xa1", "\xa6", "\xac"];
+	private static $_CHARS_WIN		= ["\xb9", "\x9c", "\x9f", "\xa5", "\x8c", "\x8f"];
+	private static $_CHARS_ISO_WIN	= ["\xe6", "\xea", "\xb3", "\xf1", "\xf3", "\xbf", "\xc6", "\xca", "\xa3", "\xd1", "\xd3", "\xaf"];
 
-	private
-		$_Content	= NULL,
-		$_Converted	= NULL,
-		$_Detected	= NULL,
-		$_Encode	= NULL,
-		$_Chars		= array();
+	private $_Content	= null;
+	private $_Converted	= null;
+	private $_Detected	= null;
+	private $_Encode	= null;
+	private $_Chars		= [];
 
-	public function __construct( $content, $encode = NULL, array $chars = NULL )
-		{
+	public function __construct($content, $encode = null, array $chars = null)
+	{
+		$this->_setContent($content);
 
-		$this->_setContent( $content );
-
-		if( $chars )
-			{
-			$this->_setChars( $chars );
-			}
-		else
-			{
+		if ($chars) {
+			$this->_setChars($chars);
+		} else {
 			$this->_Chars = $this->_getChars();
-			}
+		}
 
-		if( $encode )
-			{
-			$this->_setDetected( $encode );
-			}
-		else
-			{
+		if ($encode) {
+			$this->_setDetected($encode);
+		} else {
 			$this->_Detected = $this->_getDetected();
-			}
-
-		$this->_Encode = $this->_asEncode( $this->_Detected );
-
 		}
 
-	private function _setContent( $content )
-		{
+		$this->_Encode = $this->_asEncode($this->_Detected);
+	}
 
-		if( !is_string( $content ) )
-			{
-			throw new InvalidArgumentException( 'Content must be type of string: ' . var_export( $content, TRUE ) );
-			}
-		elseif( empty( $content ) )
-			{
-			throw new InvalidArgumentException( 'Content can not be empty' );
-			}
-		else
-			{
+	private function _setContent($content)
+	{
+		if (!is_string($content)) {
+			throw new InvalidArgumentException('Content must be type of string: ' . var_export($content, true));
+		} elseif (empty($content)) {
+			throw new InvalidArgumentException('Content can not be empty');
+		} else {
 			$this->_Content = $content;
-			}
-
 		}
+	}
 
-	private function _setDetected( $encode )
-		{
-
-		switch( $encode )
-			{
+	private function _setDetected($encode)
+	{
+		switch ($encode) {
 			case self::DETECTED_UTF:
 			case self::DETECTED_ISO:
 			case self::DETECTED_WIN:
@@ -145,63 +125,45 @@ class PolishEncode {
 				$this->_Encode = $encode;
 				break;
 			default:
-				throw new InvalidArgumentException( 'Undefined encode: ' . var_export( $encode, TRUE ) );
-			}
-
+				throw new InvalidArgumentException('Undefined encode: ' . var_export($encode, true));
+				break;
 		}
+	}
 
 	public function _getDetected()
-		{
+	{
+		$iso = $this->isIso();
+		$win = $this->isWin();
 
-		$iso	= $this->isIso();
-		$win	= $this->isWin();
-
-		if( $iso && $win )
-			{
+		if ($iso && $win) {
 			return self::DETECTED_ISO_WIN_MIX;
-			}
-		elseif( $iso && !$win )
-			{
+		} elseif ($iso && !$win) {
 			return self::DETECTED_ISO;
-			}
-		elseif( !$iso && $win )
-			{
+		} elseif (!$iso && $win) {
 			return self::DETECTED_WIN;
-			}
-		elseif( $this->_isIsoWin() )
-			{
+		} elseif ($this->_isIsoWin()) {
 			return self::DETECTED_ISO_WIN_OR;
-			}
-		elseif( $this->isUtf() )
-			{
+		} elseif($this->isUtf()) {
 			return self::DETECTED_UTF;
-			}
-		else
-			{
+		} else {
 			return self::DETECTED_UNRECOGNIZED;
-			}
-
 		}
+	}
 
 	public function getDetected()
-		{
-
+	{
 		return $this->_Detected;
-
-		}
+	}
 
 	public function getEncode()
-		{
-
+	{
 		return $this->_Encode;
+	}
 
-		}
-
-	public function _asEncode( $type )
+	public function _asEncode($type)
+	{
+		switch ($type)
 		{
-
-		switch( $type )
-			{
 			case self::DETECTED_UTF:
 				return self::ENCODE_UTF;
 			case self::DETECTED_ISO:
@@ -210,170 +172,121 @@ class PolishEncode {
 				return self::ENCODE_WIN;
 			default:
 				return FALSE;
-			}
-
 		}
+	}
 
-	public function isEncode( $encode )
+	public function isEncode($encode)
+	{
+		switch($encode)
 		{
-
-		switch( $encode )
-			{
 			case self::ENCODE_UTF:
 			case self::ENCODE_ISO:
 			case self::ENCODE_WIN:
-				return $this->_Encode === $name;
+				return $this->_Encode === $encode;
 			default:
-				throw new InvalidArgumentException( 'Undefined encode: ' . var_export( $encode, TRUE ) );
-			}
-
+				throw new InvalidArgumentException('Undefined encode: ' . var_export($encode, true));
 		}
+	}
 
 	public function isUtf()
-		{
-
-		if( $this->_Encode === NULL )
-			{
-			return mb_detect_encoding( $this->_Content, self::ENCODE_UTF ) === self::ENCODE_UTF;
-			}
+	{
+		if ($this->_Encode === NULL) {
+			return mb_detect_encoding($this->_Content, self::ENCODE_UTF) === self::ENCODE_UTF;
+		}
 
 		return $this->_Encode === self::DETECTED_UTF;
+	}
 
-		}
-
-	public function _isChars( $chars, $set )
-		{
-
-		return !!array_intersect( $chars, $set );
-
-		}
+	public function _isChars($chars, $set)
+	{
+		return !!array_intersect($chars, $set);
+	}
 
 	public function isIso()
-		{
-
-		if( $this->_Encode === NULL )
-			{
-			return $this->_isIso( $this->_Chars );
-			}
+	{
+		if ($this->_Encode === null) {
+			return $this->_isIso($this->_Chars);
+		}
 
 		return $this->_Encode === self::DETECTED_UTF;
+	}
 
-		}
-
-	public function _isIso( array $chars )
-		{
-
-		return $this->_isChars( $chars, self::$_CHARS_ISO );
-
-		}
+	public function _isIso(array $chars)
+	{
+		return $this->_isChars($chars, self::$_CHARS_ISO);
+	}
 
 	public function isWin()
-		{
-
-		if( $this->_Encode === NULL )
-			{
-			return $this->_isChars( $this->_Chars, self::$_CHARS_WIN );
-			}
+	{
+		if ($this->_Encode === null) {
+			return $this->_isChars($this->_Chars, self::$_CHARS_WIN);
+		}
 
 		return $this->_Encode === self::DETECTED_UTF;
-
-		}
+	}
 
 	private function _isIsoWin()
-		{
+	{
+		return $this->_isChars($this->_Chars, self::$_CHARS_ISO_WIN);
+	}
 
-		return $this->_isChars( $this->_Chars, self::$_CHARS_ISO_WIN );
-
-		}
-
-	private function _setChars( $chars )
-		{
-
-		$count = count( $chars );
-		if( $count !== count( $chars, COUNT_RECURSIVE ) )
-			{
-			throw new InvalidArgumentException( 'Chars must be single-dimensional array: ' . var_export( $chars, TRUE ) );
-			}
-		elseif( $count !== count( array_filter( $chars ) ) || !ctype_xdigit( implode( '', $chars ) ) )
-			{
-			throw new InvalidArgumentException( 'Chars must be array of hexadecimal strings: ' . var_export( $chars, TRUE ) );
-			}
-		else
-			{
+	private function _setChars($chars)
+	{
+		$count = count($chars);
+		if ($count !== count($chars, COUNT_RECURSIVE)) {
+			throw new InvalidArgumentException('Chars must be single-dimensional array: ' . var_export($chars, true));
+		} elseif ($count !== count(array_filter($chars)) || !ctype_xdigit( implode('', $chars))) {
+			throw new InvalidArgumentException('Chars must be array of hexadecimal strings: ' . var_export($chars, true));
+		} else {
 			$this->_Chars = $chars;
-			}
-
 		}
+	}
 
 	private function _getChars()
-		{
-
-		return str_split( count_chars( $this->_Content, self::COUNT_CHARS ) );
-
-		}
+	{
+		return str_split(count_chars($this->_Content, self::COUNT_CHARS));
+	}
 
 	public function getConverted()
-		{
-
-		if( !$this->_Converted )
-			{
+	{
+		if (!$this->_Converted) {
 			$this->_Converted = $this->_getUtf();
-			}
+		}
 
 		return $this->_Converted;
-
-		}
+	}
 
 	private function _getUtf()
-		{
-
-		if( $this->_Encode === self::ENCODE_UTF )
-			{
+	{
+		if ($this->_Encode === self::ENCODE_UTF) {
 			return $this->_Content;
-			}
-		elseif( $this->_Detected === self::DETECTED_ISO_WIN_OR )
-			{
-			return $this->_asUtf( self::ENCODE_ISO, $this->_Content );
-			}
-		elseif( $this->_Detected === self::DETECTED_ISO_WIN_MIX )
-			{
+		} elseif ($this->_Detected === self::DETECTED_ISO_WIN_OR) {
+			return $this->_asUtf(self::ENCODE_ISO, $this->_Content);
+		} elseif ($this->_Detected === self::DETECTED_ISO_WIN_MIX) {
 			return $this->_isoWinAsUtf();
-			}
-		elseif( $this->_Detected === self::DETECTED_UNRECOGNIZED )
-			{
-			return FALSE;
-			}
-		else
-			{
-			return $this->_asUtf( $this->_Encode, $this->_Content );
-			}
-
+		} elseif ($this->_Detected === self::DETECTED_UNRECOGNIZED) {
+			return false;
+		} else {
+			return $this->_asUtf($this->_Encode, $this->_Content);
 		}
+	}
 
-	private function _asUtf( $encode, $content )
-		{
-
-		return iconv( $encode, self::ENCODE_UTF, $content );
-
-		}
+	private function _asUtf($encode, $content)
+	{
+		return iconv($encode, self::ENCODE_UTF, $content);
+	}
 
 	private function _isoWinAsUtf()
-		{
-
-		for( $c = '', $i = 0, $l = strlen( $this->_Chars ); $i < $l; $i++ )
-			{
-			if( $this->_isIso( array( $this->_Chars[ $i ] ) ) )
-				{
-				$c .= $this->_asUtf( self::ENCODE_ISO, $this->_Chars[ $i ] );
-				}
-			else
-				{
-				$c .= $this->_asUtf( self::ENCODE_WIN, $this->_Chars[ $i ] );
-				}
+	{
+		for ($c = '', $i = 0, $l = strlen( $this->_Chars ); $i < $l; $i++) {
+			if ($this->_isIso([$this->_Chars[$i]])) {
+				$c .= $this->_asUtf(self::ENCODE_ISO, $this->_Chars[$i]);
+			} else {
+				$c .= $this->_asUtf(self::ENCODE_WIN, $this->_Chars[$i]);
 			}
-
-		return $c;
-
 		}
 
+		return $c;
 	}
+
+}
